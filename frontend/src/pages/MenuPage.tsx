@@ -3,6 +3,7 @@ import { Search, Filter, Star, Plus } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { defaultMenu } from '@/data/defaultMenu';
 
 const categories = ['All', 'Cold Coffee', 'Hot Coffee', 'Ice Tea', 'Shakes', 'Fries', 'Pasta', 'Maggie', 'Sandwich', 'Pizza', 'Burger', 'Snacks', 'Desserts'];
 
@@ -23,29 +24,37 @@ const categoryLabels: Record<string, string> = {
   'Desserts': 'Desserts',
 };
 
+const mapMenuItems = (items: any[]) => items.map((item: any) => ({
+  ...item,
+  id: item.id.toString(),
+  image: item.img || item.image_url || '/images/hero_coffee.png',
+  description: item.desc || item.description || 'Delicious cafe item',
+  rating: item.rating || 4.5
+}));
+
 export default function MenuPage() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [menuItems, setMenuItems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [menuItems, setMenuItems] = useState<any[]>(() => mapMenuItems(defaultMenu));
+  const [loading, setLoading] = useState(false);
   const addToCart = useCartStore((state) => state.addItem);
 
   useEffect(() => {
     const fetchMenu = async () => {
+      const apiUrl = import.meta.env.VITE_API_URL;
+      if (!apiUrl) return;
+
       try {
-        const res = await fetch((import.meta.env.VITE_API_URL || '') + '/api/menu');
+        const res = await fetch(`${apiUrl}/api/menu`);
+        if (!res.ok) return;
+        const contentType = res.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) return;
         const data = await res.json();
-        setMenuItems(data.map((item: any) => ({
-          ...item,
-          id: item.id.toString(),
-          image: item.img || item.image_url || '/images/hero_coffee.png',
-          description: item.desc || item.description || 'Delicious cafe item',
-          rating: item.rating || 4.5
-        })));
+        if (Array.isArray(data) && data.length > 0) {
+          setMenuItems(mapMenuItems(data));
+        }
       } catch (err) {
-        console.error("Failed to fetch menu:", err);
-      } finally {
-        setLoading(false);
+        console.warn("Backend API not reachable, using built-in menu catalog:", err);
       }
     };
     fetchMenu();

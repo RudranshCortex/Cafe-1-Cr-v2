@@ -23,8 +23,8 @@ const initialMenuItems: MenuItem[] = [
 ];
 
 export default function MenuManagement() {
-  const [items, setItems] = useState<MenuItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<MenuItem[]>(initialMenuItems);
+  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [currentPage, setCurrentPage] = useState(1);
@@ -58,7 +58,8 @@ export default function MenuManagement() {
       }));
       setItems(formattedItems);
     } catch (error) {
-      console.error("Failed to fetch menu:", error);
+      console.warn("Failed to fetch menu from backend, showing fallback:", error);
+      setItems(initialMenuItems);
     } finally {
       setLoading(false);
     }

@@ -3,27 +3,37 @@ import { Link } from 'react-router-dom';
 import { Star, Plus, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/store/cartStore';
+import { defaultMenu } from '@/data/defaultMenu';
+
+const mapFeatured = (items: any[]) => items.slice(0, 3).map((item: any) => ({
+  ...item,
+  id: item.id.toString(),
+  image: item.img || item.image_url || '/images/hero_coffee.png',
+  description: item.desc || item.description || 'Delicious cafe item',
+  rating: item.rating || 4.5,
+  quantity: 1
+}));
 
 export default function FeaturedMenu() {
   const addItem = useCartStore((state) => state.addItem);
-  const [featuredItems, setFeaturedItems] = useState<any[]>([]);
+  const [featuredItems, setFeaturedItems] = useState<any[]>(() => mapFeatured(defaultMenu));
 
   useEffect(() => {
     const fetchMenu = async () => {
+      const apiUrl = import.meta.env.VITE_API_URL;
+      if (!apiUrl) return;
+
       try {
-        const res = await fetch((import.meta.env.VITE_API_URL || '') + '/api/menu');
+        const res = await fetch(`${apiUrl}/api/menu`);
+        if (!res.ok) return;
+        const contentType = res.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) return;
         const data = await res.json();
-        // Take up to 3 items
-        setFeaturedItems(data.slice(0, 3).map((item: any) => ({
-          ...item,
-          id: item.id.toString(),
-          image: item.img || item.image_url || '/images/hero_coffee.png',
-          description: item.desc || item.description || 'Delicious cafe item',
-          rating: item.rating || 4.5,
-          quantity: 1
-        })));
+        if (Array.isArray(data) && data.length > 0) {
+          setFeaturedItems(mapFeatured(data));
+        }
       } catch (err) {
-        console.error("Failed to fetch featured menu:", err);
+        console.warn("Backend API not reachable, using built-in featured menu:", err);
       }
     };
     fetchMenu();
